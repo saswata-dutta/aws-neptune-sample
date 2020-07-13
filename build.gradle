@@ -1,0 +1,39 @@
+plugins {
+    id 'application'
+}
+
+group 'org.saswata'
+version '1.0-SNAPSHOT'
+
+application {
+    mainClass = 'org.saswata.Main'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": application.getMainClass()
+    }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'org.apache.tinkerpop', name: 'gremlin-driver', version: '3.4.1'
+}
+
+task printGradleHome {
+    doLast {
+        println gradle.gradleHomeDir
+    }
+}
