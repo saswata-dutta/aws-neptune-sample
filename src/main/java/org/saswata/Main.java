@@ -7,6 +7,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,13 +64,14 @@ public class Main {
   static String runQuery(GraphTraversalSource g, String uid) {
     long start = Instant.now().toEpochMilli();
 
-    GraphTraversal t =
-        g.V(uid).union(__.identity(),
+    GraphTraversal<Vertex, Object> t =
+        g.withSideEffect("Neptune#repeatMode", "DFS").
+            V(uid).union(
+            __.identity(),
             __.repeat(__.out().not(__.hasLabel("region", "business")).simplePath()).
                 until(__.outE().limit(1).count().is(0)).
                 repeat(__.both().not(__.hasLabel("region", "business")).simplePath()).
-                until(__.hasLabel("fake")).emit(__.hasLabel("aws_account")));
-
+                emit(__.hasLabel("aws_account"))).dedup().id();
 
     int[] count = {0};
     t.forEachRemaining(e -> ++count[0]);
