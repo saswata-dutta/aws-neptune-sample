@@ -71,7 +71,7 @@ public class Main {
             __.repeat(__.out().not(__.hasLabel("region", "business")).simplePath()).
                 until(__.outE().limit(1).count().is(0)).
                 repeat(__.both().not(__.hasLabel("region", "business")).simplePath()).
-                emit(__.hasLabel("aws_account"))).dedup().id();
+                emit(__.hasLabel("account"))).dedup().id();
 
     int[] count = {0};
     t.forEachRemaining(e -> ++count[0]);

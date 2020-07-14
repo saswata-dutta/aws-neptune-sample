@@ -11,3 +11,6 @@ In an aws instance, get the Security Cert.
 ### Run
 
 ``java -jar neptune-perf-1.0-SNAPSHOT.jar <neptune cluster endpoint> <file with sample keys to lookup> <file to dump times>``
+
+### Sample Data
+Try the scripts at [neptune_gremlin_data_gen](https://github.com/saswata-dutta/neptune_gremlin_data_gen).
