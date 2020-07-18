@@ -61,17 +61,17 @@ public class Main {
     return AnonymousTraversalSource.traversal().withRemote(connection);
   }
 
+  static final String[] edgeLabels = {"has_customer", "has_payer_account", "has_sfid"};
+
   static String runQuery(GraphTraversalSource g, String uid) {
     long start = Instant.now().toEpochMilli();
 
     GraphTraversal<Vertex, Object> t =
-        g.withSideEffect("Neptune#repeatMode", "DFS").
-            V(uid).union(
-            __.identity(),
-            __.repeat(__.out().not(__.hasLabel("region", "business")).simplePath()).
-                until(__.outE().limit(1).count().is(0)).
-                repeat(__.both().not(__.hasLabel("region", "business")).simplePath()).
-                emit(__.hasLabel("account"))).dedup().id();
+        g.withSideEffect("Neptune#repeatMode", "CHUNKED_DFS").V(uid).
+            repeat(__.out(edgeLabels).simplePath()).
+            until(__.outE(edgeLabels).limit(1).count().is(0)).
+            repeat(__.both(edgeLabels).simplePath()).
+            emit(__.hasLabel("account")).dedup().id();
 
     int[] count = {0};
     t.forEachRemaining(e -> ++count[0]);
@@ -79,7 +79,7 @@ public class Main {
 
     long stop = Instant.now().toEpochMilli();
     long time = stop - start;
-    return time + "," + count[0];
+    return uid + "," + time + "," + count[0];
   }
 
 }
