@@ -10,7 +10,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,21 +26,21 @@ public class Main {
     Cluster cluster = clusterProvider(neptune);
     GraphTraversalSource g = graphProvider(cluster);
 
-    runSuite(g, accountsSampleLoc, timesDump);
+    final int BATCH_SIZE = 32;
+    runSuite(g, accountsSampleLoc, timesDump, BATCH_SIZE);
 
     cluster.close();
   }
 
-  static void runSuite(GraphTraversalSource g, String accountsSampleLoc, String timesDump) {
+  static void runSuite(GraphTraversalSource g, String accountsSampleLoc, String timesDump, final int BATCH_SIZE) {
 
     try (Stream<String> in = Files.lines(Paths.get(accountsSampleLoc));
-         PrintWriter out = new PrintWriter(new FileWriter(timesDump))) {
+         PrintWriter out = new PrintWriter(new FileWriter(timesDump));
+         BatchExecutor batchExecutor = new BatchExecutor(out, BATCH_SIZE)) {
 
-      in.forEach(acc -> {
-        out.println(runQuery(g, acc.trim()));
-      });
+      in.forEach(acc -> batchExecutor.submit(() -> runQuery(g, acc.trim())));
 
-    } catch (IOException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
