@@ -2,6 +2,7 @@ package org.saswata;
 
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
+import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.remote.RemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -20,13 +21,15 @@ import java.util.stream.Stream;
 public class Main {
   public static void main(String[] args) {
     String neptune = args[0];
-    String accountsSampleLoc = args[1];
-    String timesDump = args[2];
+    String keyStore = args[1];
+    String keyStorePass = args[2];
+    String accountsSampleLoc = args[3];
+    String timesDump = args[4];
+    final int BATCH_SIZE = 32;
 
-    Cluster cluster = clusterProvider(neptune);
+    Cluster cluster = clusterProvider(neptune, keyStore, keyStorePass, BATCH_SIZE);
     GraphTraversalSource g = graphProvider(cluster);
 
-    final int BATCH_SIZE = 32;
     runSuite(g, accountsSampleLoc, timesDump, BATCH_SIZE);
 
     cluster.close();
@@ -45,12 +48,24 @@ public class Main {
     }
   }
 
-  static Cluster clusterProvider(String neptune) {
+  static Cluster clusterProvider(String neptune, String keyStore, String keyStorePassword, int BATCH_SIZE) {
+    // disable DNS cache, to enable neptune dns load balancing on ro instances
+//    java.security.Security.setProperty("networkaddress.cache.ttl", "0");
+//    java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0");
+
     Cluster.Builder clusterBuilder = Cluster.build()
-        .addContactPoint(neptune)
+        .addContactPoint(neptune) // add more ro contact points for load balancing
         .port(8182)
         .enableSsl(true)
-        .keyCertChainFile("SFSRootCAG2.pem");
+        .keyStore(keyStore)
+        .keyStorePassword(keyStorePassword)
+        .serializer(Serializers.GRAPHBINARY_V1D0)
+        .maxInProcessPerConnection(1) // ensure no contention for connections per batch
+        .minInProcessPerConnection(1)
+        .maxSimultaneousUsagePerConnection(1)
+        .minSimultaneousUsagePerConnection(1)
+        .minConnectionPoolSize(BATCH_SIZE)
+        .maxConnectionPoolSize(BATCH_SIZE);
 
     return clusterBuilder.create();
   }
@@ -72,13 +87,13 @@ public class Main {
             repeat(__.both(edgeLabels).simplePath()).
             emit(__.hasLabel("account")).dedup().id();
 
-    int[] count = {0};
-    t.forEachRemaining(e -> ++count[0]);
     // avoid printing to get more accurate query times
+    //t.forEachRemaining(System.out::println);
+    int count = t.toSet().size();
 
     long stop = Instant.now().toEpochMilli();
     long time = stop - start;
-    return uid + "," + time + "," + count[0];
+    return uid + "," + time + "," + count;
   }
 
 }
