@@ -1,5 +1,7 @@
 package org.saswata;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
@@ -62,7 +64,8 @@ public class Main {
         .minInProcessPerConnection(1)
         .maxSimultaneousUsagePerConnection(1)
         .minSimultaneousUsagePerConnection(1)
-        .minConnectionPoolSize(BATCH_SIZE)
+        .maxWaitForConnection(15000)
+        .minConnectionPoolSize(BATCH_SIZE).keyCertChainFile()
         .maxConnectionPoolSize(BATCH_SIZE);
 
     return clusterBuilder.create();
