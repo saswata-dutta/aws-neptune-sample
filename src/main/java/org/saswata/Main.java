@@ -1,8 +1,7 @@
 package org.saswata;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
+import org.apache.tinkerpop.gremlin.driver.SigV4WebSocketChannelizer;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers;
 import org.apache.tinkerpop.gremlin.process.remote.RemoteConnection;
@@ -11,7 +10,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.driver.SigV4WebSocketChannelizer;
 
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -24,11 +22,13 @@ import java.util.stream.Stream;
 public class Main {
   public static void main(String[] args) {
     String neptune = args[0];
-    String accountsSampleLoc = args[1];
-    String timesDump = args[2];
+    String keyStore = args[1];
+    String keyStorePass = args[2];
+    String accountsSampleLoc = args[3];
+    String timesDump = args[4];
     final int BATCH_SIZE = 32;
 
-    Cluster cluster = clusterProvider(neptune, BATCH_SIZE);
+    Cluster cluster = clusterProvider(neptune, keyStore, keyStorePass, BATCH_SIZE);
     GraphTraversalSource g = graphProvider(cluster);
 
     runSuite(g, accountsSampleLoc, timesDump, BATCH_SIZE);
@@ -49,7 +49,7 @@ public class Main {
     }
   }
 
-  static Cluster clusterProvider(String neptune, int BATCH_SIZE) {
+  static Cluster clusterProvider(String neptune, String keyStore, String keyStorePassword, int BATCH_SIZE) {
     // disable DNS cache, to enable neptune dns load balancing on ro instances
     java.security.Security.setProperty("networkaddress.cache.ttl", "0");
     java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0");
@@ -58,6 +58,8 @@ public class Main {
         .addContactPoint(neptune) // add more ro contact points for load balancing
         .port(8182)
         .enableSsl(true)
+        .keyStore(keyStore)
+        .keyStorePassword(keyStorePassword)
         .channelizer(SigV4WebSocketChannelizer.class)
         .serializer(Serializers.GRAPHBINARY_V1D0)
         .maxInProcessPerConnection(1) // ensure no contention for connections per batch
@@ -65,7 +67,7 @@ public class Main {
         .maxSimultaneousUsagePerConnection(1)
         .minSimultaneousUsagePerConnection(1)
         .maxWaitForConnection(15000)
-        .minConnectionPoolSize(BATCH_SIZE).keyCertChainFile()
+        .minConnectionPoolSize(BATCH_SIZE)
         .maxConnectionPoolSize(BATCH_SIZE);
 
     return clusterBuilder.create();
