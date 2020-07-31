@@ -29,4 +29,4 @@ gradle jar
 readonly neptune="$1"
 readonly input="$2"
 java -jar build/libs/neptune-perf-1.0-SNAPSHOT.jar \
-  "$neptune" 'SFSRootCAG2.ks' '123456' "$input" 'out.txt'
+  "$neptune" "$input" 'out.txt'

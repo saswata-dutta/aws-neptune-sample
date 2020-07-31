@@ -22,13 +22,11 @@ import java.util.stream.Stream;
 public class Main {
   public static void main(String[] args) {
     String neptune = args[0];
-    String keyStore = args[1];
-    String keyStorePass = args[2];
-    String accountsSampleLoc = args[3];
-    String timesDump = args[4];
+    String accountsSampleLoc = args[1];
+    String timesDump = args[2];
     final int BATCH_SIZE = 32;
 
-    Cluster cluster = clusterProvider(neptune, keyStore, keyStorePass, BATCH_SIZE);
+    Cluster cluster = clusterProvider(neptune, BATCH_SIZE);
     GraphTraversalSource g = graphProvider(cluster);
 
     runSuite(g, accountsSampleLoc, timesDump, BATCH_SIZE);
@@ -49,7 +47,7 @@ public class Main {
     }
   }
 
-  static Cluster clusterProvider(String neptune, String keyStore, String keyStorePassword, int BATCH_SIZE) {
+  static Cluster clusterProvider(String neptune, int BATCH_SIZE) {
     // disable DNS cache, to enable neptune dns load balancing on ro instances
     java.security.Security.setProperty("networkaddress.cache.ttl", "0");
     java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0");
@@ -58,8 +56,8 @@ public class Main {
         .addContactPoint(neptune) // add more ro contact points for load balancing
         .port(8182)
         .enableSsl(true)
-        .keyStore(keyStore)
-        .keyStorePassword(keyStorePassword)
+//        .keyStore(keyStore) // optional as amazon cert will be used and should be in truststore of server
+//        .keyStorePassword(keyStorePassword)
         .channelizer(SigV4WebSocketChannelizer.class)
         .serializer(Serializers.GRAPHBINARY_V1D0)
         .maxInProcessPerConnection(1) // ensure no contention for connections per batch
